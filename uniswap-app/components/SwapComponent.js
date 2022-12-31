@@ -58,9 +58,33 @@ const SwapComponent = () => {
 
   const notifyError = msg => toast.error(msg, { duration: 6000 })
   const notifySuccess = () => toast.success('Transaction completed.')
-  const address = ''
+  const address = useAccount()
 
   // Functions for functionality
+  const performSwap = async () => {
+    setTxPending(true)
+    let receipt
+
+    if(srcToken === ETH && destToken !== ETH) {
+      receipt = await swapEthToToken(destToken, inputValue)
+    }else if(srcToken !== ETH && destToken === ETH) {
+      receipt = await swapTokenToEth(srcToken, inputValue)
+    }
+  }
+
+  // 
+  const handleSwap = async () => {
+    if(srcToken === ETH && destToken !== ETH){
+      performSwap(  )
+    }else{
+      setTxPending(true)
+      const result = await hasValidAllowance(address, srcToken, inputValue)
+      setTxPending(false)
+
+      if(result) performSwap()
+      else handleInsufficientAllowance()
+    }
+  }
 
   useEffect(() => {
     // Handling the text of the submit button
@@ -69,6 +93,12 @@ const SwapComponent = () => {
     else if (!inputValue || !outputValue) setSwapBtnText(ENTER_AMOUNT)
     else setSwapBtnText(SWAP)
   }, [inputValue, outputValue, address])
+
+  const handleInsufficientAllowance = async () => {
+    setTxPending(true)
+    await increaseAllowance(srcToken, inputValue)
+    setTxPending(false)
+  }
 
   useEffect(() => {
     if (
@@ -123,7 +153,7 @@ const SwapComponent = () => {
         onClick={() => {
           if (swapBtnText === INCREASE_ALLOWANCE)
             console.log('increaseAllowance')
-          else if (swapBtnText === SWAP) console.log('Swap')
+          else if (swapBtnText === SWAP) handleSwap()
         }}
       >
         {swapBtnText}
